@@ -90,22 +90,22 @@
       const email = document.getElementById("email").value;
       const mobile = document.getElementById("phone").value;
 
-      fetch("https://script.google.com/macros/s/AKfycbxR81OHcZntQqbvOJfXNFzib5euAtt2fZdoFL24ipy7Hqd7KJbA-UGW2Gpr06RwUS8X/exec", {
-        method: "POST",
-        body: JSON.stringify({ name, email, mobile }),
-        headers: {
-          "Content-Type": "application/json",
-        },
-      })
-        .then(() => {
-          document.getElementById("status").textContent = "Successfully submitted!";
+      const baseURL = "https://script.google.com/macros/s/AKfycbxR81OHcZntQqbvOJfXNFzib5euAtt2fZdoFL24ipy7Hqd7KJbA-UGW2Gpr06RwUS8X/exec";
+      const query = `?name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}&mobile=${encodeURIComponent(mobile)}`;
+
+      fetch(baseURL + query)
+        .then(response => response.text())
+        .then(responseText => {
+          document.getElementById("status").textContent = "✅ Successfully submitted!";
           document.getElementById("userForm").reset();
           document.getElementById("otp-section").classList.add("hidden");
-        })
-        .catch(() => {
-          document.getElementById("status").textContent = "Error submitting to Google Sheets.";
-        });
-    }
+    })
+    .catch(error => {
+      console.error("Submission error:", error);
+      document.getElementById("status").textContent = "❌ Error submitting to Google Sheets.";
+    });
+}
+
   </script>
 </body>
 </html>
