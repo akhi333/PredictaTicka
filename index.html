@@ -90,8 +90,11 @@
       const email = document.getElementById("email").value;
       const mobile = document.getElementById("phone").value;
 
-      const baseURL = "https://script.google.com/macros/s/AKfycbxR81OHcZntQqbvOJfXNFzib5euAtt2fZdoFL24ipy7Hqd7KJbA-UGW2Gpr06RwUS8X/exec";
-      const query = `?name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}&mobile=${encodeURIComponent(mobile)}`;
+      fetch("https://script.google.com/macros/s/AKfycbxR81OHcZntQqbvOJfXNFzib5euAtt2fZdoFL24ipy7Hqd7KJbA-UGW2Gpr06RwUS8X/exec?name=Akshay&email=akkieduforum@gmail.com&mobile=+919502358351")
+      .then(res => res.text())
+      .then(data => console.log(data))
+      .catch(err => console.error("Fetch error:", err));
+
 
       fetch(baseURL + query)
         .then(response => response.text())
