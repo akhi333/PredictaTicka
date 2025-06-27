@@ -59,25 +59,44 @@
     let confirmationResult;
 
     function sendOTP() {
-      const phone = document.getElementById("phone").value;
-      if (!phone) return alert("Please enter your phone number");
+  const phone = document.getElementById("phone").value.trim();
+  const statusEl = document.getElementById("status");
 
-      document.getElementById("status").textContent = "Sending OTP...";
+  // Validate phone number format (E.164)
+  if (!/^\+\d{10,15}$/.test(phone)) {
+    statusEl.textContent = "⚠️ Enter a valid phone number with country code, e.g., +1234567890";
+    return;
+  }
 
-      window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
-        size: 'invisible'
-      });
+  statusEl.textContent = "Sending OTP...";
 
-      firebase.auth().signInWithPhoneNumber(phone, recaptchaVerifier)
-        .then((result) => {
-          confirmationResult = result;
-          document.getElementById("otp-section").classList.remove("hidden");
-          document.getElementById("status").textContent = "OTP sent!";
-        })
-        .catch((error) => {
-          document.getElementById("status").textContent = "Error sending OTP: " + error.message;
-        });
+  // Create invisible reCAPTCHA
+  window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
+    size: 'invisible',
+    callback: function (response) {
+      // reCAPTCHA solved, continue with sign-in
+    },
+    'expired-callback': function () {
+      statusEl.textContent = "reCAPTCHA expired. Please try again.";
     }
+  });
+
+  recaptchaVerifier.render().then(function (widgetId) {
+    window.recaptchaWidgetId = widgetId;
+
+    firebase.auth().signInWithPhoneNumber(phone, recaptchaVerifier)
+      .then((result) => {
+        confirmationResult = result;
+        statusEl.textContent = "✅ OTP sent. Check your phone!";
+        document.getElementById("otp-section").classList.remove("hidden");
+      })
+      .catch((error) => {
+        console.error(error);
+        statusEl.textContent = "❌ Error sending OTP: " + error.message;
+      });
+  });
+}
+
 
     function verifyOTP() {
       const otp = document.getElementById("otp").value;
