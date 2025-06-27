@@ -3,10 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Data Flow Form</title>
+  <title>Data Flow Form with OTP</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
 </head>
-<body class="relative h-screen w-screen overflow-hidden">
+<body class="relative h-screen w-screen overflow-hidden bg-black text-white">
 
   <!-- Background Video -->
   <video autoplay muted loop playsinline class="absolute top-0 left-0 w-full h-full object-cover z-0">
@@ -15,30 +17,98 @@
   </video>
 
   <!-- Form Overlay -->
-  <div class="relative z-10 flex items-center justify-center h-full bg-black/50">
-    <form class="bg-white/90 backdrop-blur-md p-8 rounded-2xl shadow-xl w-full max-w-md space-y-6">
-      <h2 class="text-2xl font-bold text-gray-800 text-center">Get in Touch</h2>
-      
-      <div>
-        <label class="block text-sm font-medium text-gray-700">Name</label>
-        <input type="text" placeholder="Your full name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500" />
-      </div>
-      
-      <div>
-        <label class="block text-sm font-medium text-gray-700">Email</label>
-        <input type="email" placeholder="you@example.com" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500" />
-      </div>
-      
-      <div>
-        <label class="block text-sm font-medium text-gray-700">Mobile</label>
-        <input type="tel" placeholder="+1 234 567 890" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500" />
-      </div>
-      
-      <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700 transition">
-        Submit
+  <div class="relative z-10 flex items-center justify-center h-full bg-black/40">
+    <form id="userForm" class="bg-white/40 backdrop-blur-md p-8 rounded-2xl shadow-xl w-full max-w-md space-y-6 text-black">
+      <h2 class="text-2xl font-bold text-center">Verify & Submit</h2>
+
+      <input id="name" type="text" placeholder="Name" class="w-full px-4 py-2 rounded" required />
+      <input id="email" type="email" placeholder="Email" class="w-full px-4 py-2 rounded" required />
+      <input id="phone" type="tel" placeholder="+1234567890" class="w-full px-4 py-2 rounded" required />
+
+      <div id="recaptcha-container"></div>
+
+      <button type="button" onclick="sendOTP()" class="bg-blue-600 text-white w-full py-2 rounded hover:bg-blue-700">
+        Send OTP
       </button>
+
+      <div id="otp-section" class="hidden space-y-4">
+        <input id="otp" type="text" placeholder="Enter OTP" class="w-full px-4 py-2 rounded" />
+        <button type="button" onclick="verifyOTP()" class="bg-green-600 text-white w-full py-2 rounded hover:bg-green-700">
+          Verify & Submit
+        </button>
+      </div>
+
+      <p id="status" class="text-sm text-center mt-2"></p>
     </form>
   </div>
 
+  <script>
+    // Replace with your Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyBRNJ5nnrVt_cAtpObjbAzxzqLUyTtYGzw",
+      authDomain: "predictaticka.firebaseapp.com",
+      projectId: "predictaticka",
+      storageBucket: "predictaticka.firebasestorage.app",
+      messagingSenderId: "208946725163",
+      appId: "1:208946725163:web:1c18e6f1b7b92f2520856e",
+      measurementId: "G-7TM58VL7X4"
+      };
+
+    firebase.initializeApp(firebaseConfig);
+
+    let confirmationResult;
+
+    function sendOTP() {
+      const phone = document.getElementById("phone").value;
+      if (!phone) return alert("Please enter your phone number");
+
+      document.getElementById("status").textContent = "Sending OTP...";
+
+      window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
+        size: 'invisible'
+      });
+
+      firebase.auth().signInWithPhoneNumber(phone, recaptchaVerifier)
+        .then((result) => {
+          confirmationResult = result;
+          document.getElementById("otp-section").classList.remove("hidden");
+          document.getElementById("status").textContent = "OTP sent!";
+        })
+        .catch((error) => {
+          document.getElementById("status").textContent = "Error sending OTP: " + error.message;
+        });
+    }
+
+    function verifyOTP() {
+      const otp = document.getElementById("otp").value;
+      confirmationResult.confirm(otp).then(() => {
+        submitToGoogleSheet();
+      }).catch((error) => {
+        document.getElementById("status").textContent = "Invalid OTP. Try again.";
+      });
+    }
+
+    function submitToGoogleSheet() {
+      const name = document.getElementById("name").value;
+      const email = document.getElementById("email").value;
+      const mobile = document.getElementById("phone").value;
+
+      fetch("https://script.google.com/macros/s/AKfycbxR81OHcZntQqbvOJfXNFzib5euAtt2fZdoFL24ipy7Hqd7KJbA-UGW2Gpr06RwUS8X/exec", {
+        method: "POST",
+        body: JSON.stringify({ name, email, mobile }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      })
+        .then(() => {
+          document.getElementById("status").textContent = "Successfully submitted!";
+          document.getElementById("userForm").reset();
+          document.getElementById("otp-section").classList.add("hidden");
+        })
+        .catch(() => {
+          document.getElementById("status").textContent = "Error submitting to Google Sheets.";
+        });
+    }
+  </script>
 </body>
 </html>
